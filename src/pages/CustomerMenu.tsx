@@ -1376,13 +1376,15 @@ const PublicMenuContent: React.FC<PublicMenuContentProps> = ({
       document.querySelector<HTMLElement>('.pm-t4-cat-strip');
     const chip = document.querySelector<HTMLElement>(`[data-cat-id="${activeCatId}"]`);
     if (strip && chip) {
-      const chipLeft = chip.offsetLeft;
-      const chipWidth = chip.offsetWidth;
-      const stripWidth = strip.clientWidth;
-      strip.scrollTo({
-        left: chipLeft - stripWidth / 2 + chipWidth / 2,
-        behavior: 'smooth',
-      });
+      const stripRect = strip.getBoundingClientRect();
+      const chipRect = chip.getBoundingClientRect();
+      const deltaX = chipRect.left + chipRect.width / 2 - (stripRect.left + stripRect.width / 2);
+      if (Math.abs(deltaX) > 4) {
+        strip.scrollBy({
+          left: deltaX,
+          behavior: 'smooth',
+        });
+      }
     }
   }, [activeCatId]);
 
@@ -3456,7 +3458,7 @@ const PublicMenuContent: React.FC<PublicMenuContentProps> = ({
           {/* THEME 2 ("مظهر 2" — UrbanBite Dark-First Overlapping Profile Style) */}
           <header className="pm-t2-header">
             <div className="pm-t2-header-inner">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flexWrap: 'nowrap' }}>
                 <button
                   type="button"
                   className="pm-t2-icon-btn"
@@ -3757,6 +3759,7 @@ const PublicMenuContent: React.FC<PublicMenuContentProps> = ({
               <Search size={17} style={{ color: accentText, flexShrink: 0 }} />
               <input
                 type="search"
+                className="pm-plain-input"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="ابحث عن البرجر، السندويش أو الصنف..."
@@ -3806,10 +3809,10 @@ const PublicMenuContent: React.FC<PublicMenuContentProps> = ({
                     <span>{(rest.n || 'M').slice(0, 2)}</span>
                   )}
                 </div>
-                <span style={{ fontWeight: 900, fontSize: '15.5px' }}>{rest.n}</span>
+                <span className="pm-t4-brand-name">{rest.n}</span>
               </button>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                 {hasMultipleBranches && (
                   <button
                     type="button"
@@ -4601,6 +4604,7 @@ const PublicMenuContent: React.FC<PublicMenuContentProps> = ({
                   const itemEval = itemEvalMap.get(it.id);
                   const displayOnly = isDisplayOnlyItem(it);
                   const unavailable = !displayOnly && (itemEval ? !itemEval.available : false);
+                  const formattedBeforePrice = priceInfo.rawBefore > 0 ? fmtMoney(priceInfo.rawBefore) : '';
                   return (
                     <article
                       key={`t3_srch_${it.id}`}
@@ -4618,29 +4622,42 @@ const PublicMenuContent: React.FC<PublicMenuContentProps> = ({
                         {popularItemIds.has(it.id) && (
                           <span className="pm-t3-popular-tag">الأكثر طلباً</span>
                         )}
+                        {unavailable && (
+                          <>
+                            <div className="pm-unavailable-wash" aria-hidden="true" />
+                            <span className="pm-unavailable-pill is-compact">غير متوفر</span>
+                          </>
+                        )}
                       </div>
                       <div className="pm-t3-card-body">
                         <h3 className="pm-t3-card-title">{it.n}</h3>
                         {it.d && <p className="pm-t3-card-desc">{it.d}</p>}
                         <div className="pm-t3-card-foot">
-                          <span className="tabular-nums" style={{ fontWeight: 900, fontSize: '14px', color: accentText }}>
-                            {priceInfo.main}
-                          </span>
+                          <div style={{ minWidth: 0 }}>
+                            <span className="tabular-nums" style={{ fontWeight: 900, fontSize: '14px', color: accentText }}>
+                              {priceInfo.main}
+                            </span>
+                            {priceInfo.rawBefore > 0 && (
+                              <span className="pm-menu-card-old-price tabular-nums" style={{ display: 'block' }}>
+                                {formattedBeforePrice}
+                              </span>
+                            )}
+                          </div>
                           {!displayOnly && !unavailable && (
                             qty > 0 ? (
-                              <div className="pm-toters-qty-pill" dir="rtl" onClick={(e) => e.stopPropagation()}>
+                              <div className="pm-t3-qty-pill" dir="rtl" onClick={(e) => e.stopPropagation()}>
                                 <button
                                   type="button"
-                                  className="pm-toters-qty-pill-btn"
+                                  className="pm-t3-qty-pill-btn"
                                   onClick={(e) => decrementItemFromCart(it.id, e)}
                                   aria-label={qty === 1 ? `حذف ${it.n}` : `إنقاص ${it.n}`}
                                 >
                                   {qty === 1 ? <Trash2 size={13} /> : <Minus size={14} />}
                                 </button>
-                                <span className="pm-toters-qty-pill-val tabular-nums">{qty}</span>
+                                <span className="pm-t3-qty-pill-val tabular-nums">{qty}</span>
                                 <button
                                   type="button"
-                                  className="pm-toters-qty-pill-btn"
+                                  className="pm-t3-qty-pill-btn"
                                   onClick={(e) => quickAddOrOpenModal(it, e)}
                                   aria-label={`زيادة ${it.n}`}
                                 >
@@ -4791,42 +4808,44 @@ const PublicMenuContent: React.FC<PublicMenuContentProps> = ({
                               )}
                             </div>
                             <h3 className="pm-t1-card-title">{it.n}</h3>
-                            <div className="pm-t1-card-price-row">
-                              <span className="pm-t1-card-price tabular-nums">{priceInfo.main}</span>
-                              {priceInfo.rawBefore > 0 && (
-                                <span className="pm-t1-card-old tabular-nums">{formattedBeforePrice}</span>
+                            <div className="pm-t1-card-foot">
+                              <div className="pm-t1-card-price-row">
+                                <span className="pm-t1-card-price tabular-nums">{priceInfo.main}</span>
+                                {priceInfo.rawBefore > 0 && (
+                                  <span className="pm-t1-card-old tabular-nums">{formattedBeforePrice}</span>
+                                )}
+                              </div>
+                              {!displayOnly && !unavailable && (
+                                qty > 0 ? (
+                                  <div className="pm-t1-qty-pill" dir="rtl" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => decrementItemFromCart(it.id, e)}
+                                      aria-label={qty === 1 ? `حذف ${it.n}` : `إنقاص ${it.n}`}
+                                    >
+                                      {qty === 1 ? <Trash2 size={12} /> : <Minus size={13} />}
+                                    </button>
+                                    <span className="tabular-nums">{qty}</span>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => quickAddOrOpenModal(it, e)}
+                                      aria-label={`زيادة ${it.n}`}
+                                    >
+                                      <Plus size={13} />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="pm-t1-add-btn"
+                                    onClick={(e) => quickAddOrOpenModal(it, e)}
+                                    aria-label={`أضف للسلة: ${it.n}`}
+                                  >
+                                    <Plus size={16} strokeWidth={2.5} />
+                                  </button>
+                                )
                               )}
                             </div>
-                            {!displayOnly && !unavailable && (
-                              qty > 0 ? (
-                                <div className="pm-t1-qty-pill" onClick={(e) => e.stopPropagation()}>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => decrementItemFromCart(it.id, e)}
-                                    aria-label={qty === 1 ? `حذف ${it.n}` : `إنقاص ${it.n}`}
-                                  >
-                                    {qty === 1 ? <Trash2 size={12} /> : <Minus size={13} />}
-                                  </button>
-                                  <span className="tabular-nums">{qty}</span>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => quickAddOrOpenModal(it, e)}
-                                    aria-label={`زيادة ${it.n}`}
-                                  >
-                                    <Plus size={13} />
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  className="pm-t1-add-btn"
-                                  onClick={(e) => quickAddOrOpenModal(it, e)}
-                                  aria-label={`أضف للسلة: ${it.n}`}
-                                >
-                                  <Plus size={16} strokeWidth={2.5} />
-                                </button>
-                              )
-                            )}
                           </article>
                         );
                       })}
@@ -4854,12 +4873,9 @@ const PublicMenuContent: React.FC<PublicMenuContentProps> = ({
                                 {priceInfo.rawBefore > 0 && (
                                   <span className="pm-menu-card-old-price tabular-nums">{formattedBeforePrice}</span>
                                 )}
-                                {unavailable && (
-                                  <span className="pm-badge red" style={{ fontSize: '10.5px' }}>غير متوفر</span>
-                                )}
                               </div>
                             </div>
-                            <div className="pm-t2-row-media">
+                            <div className={`pm-t2-row-media ${unavailable ? 'is-unavailable' : ''}`}>
                               {it.img ? (
                                 <img src={it.img} alt={it.n} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                               ) : (
@@ -4867,26 +4883,31 @@ const PublicMenuContent: React.FC<PublicMenuContentProps> = ({
                                   <Utensils size={24} />
                                 </div>
                               )}
+                              {unavailable && (
+                                <>
+                                  <div className="pm-unavailable-wash" aria-hidden="true" />
+                                  <span className="pm-unavailable-pill is-compact">غير متوفر</span>
+                                </>
+                              )}
                               {!displayOnly && !unavailable && (
                                 qty > 0 ? (
                                   <div
-                                    className="pm-toters-qty-pill"
-                                    style={{ bottom: '6px', insetInlineStart: '6px' }}
+                                    className="pm-t2-qty-pill"
                                     dir="rtl"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <button
                                       type="button"
-                                      className="pm-toters-qty-pill-btn"
+                                      className="pm-t2-qty-pill-btn"
                                       onClick={(e) => decrementItemFromCart(it.id, e)}
                                       aria-label={qty === 1 ? `حذف ${it.n}` : `إنقاص ${it.n}`}
                                     >
                                       {qty === 1 ? <Trash2 size={12} /> : <Minus size={13} />}
                                     </button>
-                                    <span className="pm-toters-qty-pill-val tabular-nums">{qty}</span>
+                                    <span className="pm-t2-qty-pill-val tabular-nums">{qty}</span>
                                     <button
                                       type="button"
-                                      className="pm-toters-qty-pill-btn"
+                                      className="pm-t2-qty-pill-btn"
                                       onClick={(e) => quickAddOrOpenModal(it, e)}
                                       aria-label={`زيادة ${it.n}`}
                                     >
@@ -4958,19 +4979,19 @@ const PublicMenuContent: React.FC<PublicMenuContentProps> = ({
                                 </div>
                                 {!displayOnly && !unavailable && (
                                   qty > 0 ? (
-                                    <div className="pm-toters-qty-pill" dir="rtl" onClick={(e) => e.stopPropagation()}>
+                                    <div className="pm-t3-qty-pill" dir="rtl" onClick={(e) => e.stopPropagation()}>
                                       <button
                                         type="button"
-                                        className="pm-toters-qty-pill-btn"
+                                        className="pm-t3-qty-pill-btn"
                                         onClick={(e) => decrementItemFromCart(it.id, e)}
                                         aria-label={qty === 1 ? `حذف ${it.n}` : `إنقاص ${it.n}`}
                                       >
                                         {qty === 1 ? <Trash2 size={13} /> : <Minus size={14} />}
                                       </button>
-                                      <span className="pm-toters-qty-pill-val tabular-nums">{qty}</span>
+                                      <span className="pm-t3-qty-pill-val tabular-nums">{qty}</span>
                                       <button
                                         type="button"
-                                        className="pm-toters-qty-pill-btn"
+                                        className="pm-t3-qty-pill-btn"
                                         onClick={(e) => quickAddOrOpenModal(it, e)}
                                         aria-label={`زيادة ${it.n}`}
                                       >
@@ -5009,7 +5030,7 @@ const PublicMenuContent: React.FC<PublicMenuContentProps> = ({
                             className={`pm-t4-card ${unavailable ? 'unavailable is-unavailable' : ''}`}
                             onClick={() => openProductModal(it)}
                           >
-                            <div className="pm-t4-card-img">
+                            <div className={`pm-t4-card-img ${unavailable ? 'is-unavailable' : ''}`}>
                               {it.img ? (
                                 <img src={it.img} alt={it.n} loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                               ) : (
@@ -5017,39 +5038,40 @@ const PublicMenuContent: React.FC<PublicMenuContentProps> = ({
                                   <Utensils size={24} />
                                 </div>
                               )}
+                              {unavailable && (
+                                <>
+                                  <div className="pm-unavailable-wash" aria-hidden="true" />
+                                  <span className="pm-unavailable-pill is-compact">غير متوفر</span>
+                                </>
+                              )}
                             </div>
                             <div className="pm-t4-card-body">
                               <h3 className="pm-t4-card-title">{it.n}</h3>
                               {it.d && <p className="pm-t4-card-desc">{it.d}</p>}
                               <div className="pm-t4-card-foot">
-                                <div>
+                                <div style={{ minWidth: 0 }}>
                                   <span className="pm-t4-card-price tabular-nums">{priceInfo.main}</span>
                                   {priceInfo.rawBefore > 0 && (
-                                    <span className="pm-menu-card-old-price tabular-nums" style={{ marginInlineStart: '6px' }}>
+                                    <span className="pm-menu-card-old-price tabular-nums" style={{ display: 'inline-block', marginInlineStart: '6px' }}>
                                       {formattedBeforePrice}
-                                    </span>
-                                  )}
-                                  {unavailable && (
-                                    <span className="pm-badge red" style={{ fontSize: '10.5px', marginInlineStart: '6px' }}>
-                                      غير متوفر
                                     </span>
                                   )}
                                 </div>
                                 {!displayOnly && !unavailable && (
                                   qty > 0 ? (
-                                    <div className="pm-toters-qty-pill" dir="rtl" onClick={(e) => e.stopPropagation()}>
+                                    <div className="pm-t4-qty-pill" dir="rtl" onClick={(e) => e.stopPropagation()}>
                                       <button
                                         type="button"
-                                        className="pm-toters-qty-pill-btn"
+                                        className="pm-t4-qty-pill-btn"
                                         onClick={(e) => decrementItemFromCart(it.id, e)}
                                         aria-label={qty === 1 ? `حذف ${it.n}` : `إنقاص ${it.n}`}
                                       >
                                         {qty === 1 ? <Trash2 size={13} /> : <Minus size={14} />}
                                       </button>
-                                      <span className="pm-toters-qty-pill-val tabular-nums">{qty}</span>
+                                      <span className="pm-t4-qty-pill-val tabular-nums">{qty}</span>
                                       <button
                                         type="button"
-                                        className="pm-toters-qty-pill-btn"
+                                        className="pm-t4-qty-pill-btn"
                                         onClick={(e) => quickAddOrOpenModal(it, e)}
                                         aria-label={`زيادة ${it.n}`}
                                       >

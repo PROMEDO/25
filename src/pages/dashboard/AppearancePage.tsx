@@ -448,6 +448,8 @@ export const AppearancePage: React.FC = () => {
               {layoutDefinitions.map((lay, idx) => {
                 const isSelected = selectedLayout === lay.id;
                 const layoutAllowed = isLayoutAllowed(lay.id);
+                const previewCount =
+                  lay.id === 'grid4' ? 4 : lay.id === 'grid3' ? 3 : lay.id === 'grid' ? 2 : 2;
                 return (
                   <motion.button
                     key={lay.id}
@@ -462,11 +464,11 @@ export const AppearancePage: React.FC = () => {
                     {...dashCardMotion(prefersReducedMotion, idx, layoutAllowed ? 1 : 0.65, false, 0.08)}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '6px' }}>
-                      <span style={{ fontSize: '26px', lineHeight: 1 }}>{lay.icon}</span>
+                      <span style={{ fontSize: '20px', lineHeight: 1 }}>{lay.icon}</span>
                       {!layoutAllowed ? (
                         <span
                           style={{
-                            fontSize: '12px',
+                            fontSize: '11.5px',
                             fontWeight: 800,
                             color: '#f59e0b',
                             whiteSpace: 'nowrap',
@@ -477,7 +479,7 @@ export const AppearancePage: React.FC = () => {
                       ) : isSelected ? (
                         <span
                           style={{
-                            fontSize: '12.5px',
+                            fontSize: '12px',
                             fontWeight: 900,
                             color: 'var(--brand-ink, #34D399)',
                             whiteSpace: 'nowrap',
@@ -488,9 +490,26 @@ export const AppearancePage: React.FC = () => {
                       ) : null}
                     </div>
 
-                    <b style={{ fontSize: '15.5px', color: isSelected ? 'var(--brand-ink, #34D399)' : 'var(--ink)', lineHeight: 1.35 }}>
-                      {lay.title}
-                    </b>
+                    <div className={`mp-layout-mini-preview is-${lay.id}`} aria-hidden="true">
+                      {Array.from({ length: previewCount }).map((_, cellIdx) => (
+                        <div key={cellIdx} className="mp-layout-mini-cell">
+                          <span className="mp-layout-mini-img" />
+                          <span className="mp-layout-mini-lines">
+                            <i />
+                            <i className="short" />
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%' }}>
+                      <b style={{ fontSize: '14.5px', color: isSelected ? 'var(--brand-ink, #34D399)' : 'var(--ink)', lineHeight: 1.3 }}>
+                        {lay.title}
+                      </b>
+                      <span style={{ fontSize: '11.5px', color: 'var(--muted)', lineHeight: 1.4 }}>
+                        {lay.desc}
+                      </span>
+                    </div>
                   </motion.button>
                 );
               })}
